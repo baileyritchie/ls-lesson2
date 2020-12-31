@@ -1,4 +1,4 @@
-// implementing bonus feature #2
+// implementing bonus feature #3
 
 let readline = require("readline-sync");
 
@@ -124,7 +124,7 @@ class TTTGame {
 
       this.computerMoves();
       if (this.gameOver()) break;
-      this.board.displayWithClear();
+      //this.board.displayWithClear();
     }
     this.board.displayWithClear();
     this.displayResults();
@@ -193,7 +193,7 @@ class TTTGame {
     }
   }
 
-  humanMoves() { // was firstPlayerMoves
+  humanMoves() {
     let choice;
 
     while (true) {
@@ -215,7 +215,9 @@ class TTTGame {
     let choice;
 
     do {
-      choice = Math.floor((9 * Math.random()) + 1).toString();
+      let immediateThreats = this.findThreats();
+      let bestPositions = this.findIdealComputerPosition(immediateThreats);
+      choice ? choice = bestPositions[0] : choice = Math.floor((9 * Math.random()) + 1).toString();
     } while (!validChoices.includes(choice))
     this.board.markSquareAt(choice,this.computer.getMarker());
   }
@@ -233,6 +235,31 @@ class TTTGame {
     return TTTGame.POSSIBLE_WINNING_ROWS.some(row => {
       return this.board.countMarkersFor(player,row) === 3;
     })
+  }
+  findThreats() {
+    let threats = [];
+    TTTGame.POSSIBLE_WINNING_ROWS.forEach((row) => {
+      if (this.board.countMarkersFor(this.human,row) === 2) {
+        threats.push(row);
+      }
+    });
+    return threats;
+  }
+  findIdealComputerPosition(immediateThreats){
+    let threats = {};
+    if (immediateThreats.length === 0) return [];
+    immediateThreats.forEach((row) => {
+      row.forEach((pos) => {
+        if (this.board.squares[pos].isUnused() && !(threats.hasOwnProperty(pos))) {
+          threats[pos] = 1;
+        } else if (this.board.squares[pos].isUnused()) {
+          threats[pos] += 1;
+        } 
+      });
+    });
+    let maxThreat = Math.max(...Object.values(threats));
+    console.log(Object.keys(threats).filter((pos) => threats[pos] === maxThreat));
+    return Object.keys(threats).filter((pos) => threats[pos] === maxThreat);
   }
 }
 
