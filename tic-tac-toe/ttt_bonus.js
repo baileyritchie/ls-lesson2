@@ -1,43 +1,15 @@
-// implementing bonus feature #1
+// implementing bonus feature #2
 
 let readline = require("readline-sync");
 
-let Square = {
-  UNUSED_SQUARE:   " ",
-  HUMAN_MARKER:    "X",
-  COMPUTER_MARKER: "O",
-
-  init(marker = Square.UNUSED_SQUARE) {
-    this.marker = marker;
-    return this;
-  },
-
-  toString() {
-    return this.marker;
-  },
-
-  setMarker(marker) {
-    this.marker = marker;
-  },
-
-  isUnused() {
-    return this.marker === Square.UNUSED_SQUARE;
-  },
-
-  getMarker() {
-    return this.marker;
-  },
-};
-
-let Board = {
-  init(){
+class Board {
+  constructor() {
     this.squares  = {};
     for (let index = 1; index <= 9; index++) {
-      this.squares[String(index)] = Object.create(Square).init();
+      this.squares[String(index)] = new Square();
     }
-    return this;
-  },
-  display(){
+  }
+  display() {
     console.log("");
     console.log("     |     |");
     console.log(`  ${this.squares["1"]}  |  ${this.squares["2"]}  |  ${this.squares["3"]}`);
@@ -51,60 +23,84 @@ let Board = {
     console.log(`  ${this.squares["7"]}  |  ${this.squares["8"]}  |  ${this.squares["9"]}`);
     console.log("     |     |");
     console.log("");
-  },
-
-  displayWithClear(){
+  }
+  displayWithClear() {
     console.clear();
     console.log("");
     console.log("");
     this.display();
-  },
-
-  markSquareAt(key,marker){
+  }
+  markSquareAt(key,marker) {
     this.squares[key].setMarker(marker);
-  },
-
-  unusedSquares() {
+  }
+  unusedSquares(){
     let keys = Object.keys(this.squares);
     return keys.filter(key => this.squares[key].isUnused());
-  },
-
+  }
   isFull() {
     return this.unusedSquares().length === 0;
-  },
+  }
   countMarkersFor(player,keys) {
-    let markers = keys.filter((key) => {
+    let markers = keys.filter(key => {
       return this.squares[key].getMarker() === player.getMarker();
     });
     return markers.length;
   }
+  clear() {
+    /* clears board */
+    this.squares = {};
+    for (let index = 1; index <= 9; index++) {
+      this.squares[String(index)] = new Square();
+    }
+  }
 }
 
-const PlayerPrototype = {
-  initialize(marker) {
-    this.marker = marker;
-    return this;
-  },
+class Square {
+  static UNUSED_SQUARE = " ";
+  static HUMAN_MARKER = "X";
+  static COMPUTER_MARKER = "O";
 
+  constructor(marker = Square.UNUSED_SQUARE) {
+    this.marker = marker;
+  }
+  toString() {
+    return this.marker;
+  }
+  setMarker(marker) {
+    this.marker = marker;
+  }
+  isUnused() {
+    return this.marker  === Square.UNUSED_SQUARE;
+  }
   getMarker() {
     return this.marker;
-  },
-};
+  }
+}
 
-let Human = Object.create(PlayerPrototype);
+class Player {
+  constructor(marker){
+    this.marker  =  marker;
+  }
+  getMarker() {
+    return this.marker;
+  }
+}
 
-Human.init = function() {
-  return this.initialize(Square.HUMAN_MARKER);
-};
+class Human extends Player {
+  constructor(){
+    super(Square.HUMAN_MARKER);
+  }
 
-let Computer = Object.create(PlayerPrototype);
+}
 
-Computer.init = function() {
-  return this.initialize(Square.COMPUTER_MARKER);
-};
+class Computer extends Player{
+  constructor(){
+    super(Square.COMPUTER_MARKER);
+  }
+}
 
-let TTTGame = {
-  POSSIBLE_WINNING_ROWS: [
+class TTTGame {
+  static POSSIBLE_WINNING_ROWS = [
     [ "1", "2", "3" ],            // top row of board
     [ "4", "5", "6" ],            // center row of board
     [ "7", "8", "9" ],            // bottom row of board
@@ -113,8 +109,29 @@ let TTTGame = {
     [ "3", "6", "9" ],            // right column of board
     [ "1", "5", "9" ],            // diagonal: top-left to bottom-right
     [ "3", "5", "7" ],            // diagonal: bottom-left to top-right
-  ],
-  joinOr: function(arr,delim = ', ',word='or') {
+  ];
+  constructor() {
+    this.board = new Board();
+    this.human = new Human();
+    this.computer = new Computer();
+    this.playAgain = 'n';
+  }
+  playMore() {
+    this.board.display();
+    while (true) {
+      this.humanMoves();
+      if (this.gameOver()) break;
+
+      this.computerMoves();
+      if (this.gameOver()) break;
+      this.board.displayWithClear();
+    }
+    this.board.displayWithClear();
+    this.displayResults();
+    this.displayPlayAgainMessage(); // changes the play again based on user choice
+
+  }
+  joinOr(arr, delim = ', ', word='or') {
     let result = '';
     if (arr.length === 2 ) {
       return String(arr[0]) + " " + word + " " + String(arr[1]);
@@ -129,52 +146,54 @@ let TTTGame = {
       else result += word + " " + String(option);
     });
     return result;
-  },
-  init() {
-    this.board = Object.create(Board).init();
-    this.human = Object.create(Human).init();
-    this.computer = Object.create(Computer).init();
-    return this;
-  },
-  play(){
+  }
+  play() {
     this.displayWelcomeMessage();
-    this.board.display();
+    do {
+      this.board.clear();
+      this.playMore();
+    } while (this.playAgain === 'y');
 
-    while (true) {
-      this.humanMoves();
-      if (this.gameOver()) break;
-
-      this.computerMoves();
-      if (this.gameOver()) break;
-
-      this.board.displayWithClear();
-    }
-    this.board.displayWithClear();
-    this.displayResults();
     this.displayGoodbyeMessage();
-  },
+  }
+  displayPlayAgainMessage() {
+    const prompt = `Do you want to play again: y or n?`;
+    let choice = readline.question(prompt);
+    while (true) {
+      if (choice.toLowerCase() === 'y' || choice.toLowerCase() === 'n' ) {
+        break;
+      }
+      console.log('Not a valid response. Try again.');
+      choice = readline.question(prompt)
+    }
+    this.setPlayAgain(choice.toLowerCase());
+  }
+
+  setPlayAgain(option) {
+    this.playAgain = option;
+  }
 
   displayWelcomeMessage() {
     console.clear();
     console.log("Welcome to Tic Tac Toe!");
     console.log("");
-  },
+  }
 
   displayGoodbyeMessage() {
     console.log("Thanks for playing Tic Tac Toe! Goodbye!");
-  },
+  }
 
   displayResults() {
     if (this.isWinner(this.human)) {
-      console.log("You won! Congratulations!");
+      console.log('You won! Congratulations!');
     } else if (this.isWinner(this.computer)) {
-      console.log("I won! I won! Take that, human!");
+      console.log('I won! I won! Take that, human!');
     } else {
-      console.log("A tie game. How boring.");
+      console.log('A tie game. How boring.');
     }
-  },
-  
-  humanMoves() {
+  }
+
+  humanMoves() { // was firstPlayerMoves
     let choice;
 
     while (true) {
@@ -182,14 +201,14 @@ let TTTGame = {
       const prompt = `Choose a square (${this.joinOr(this.board.unusedSquares())}): `;
       choice = readline.question(prompt);
 
-      if (validChoices.includes(choice)) break;
-
+      if (validChoices.includes(choice)) {
+        break;
+      }
       console.log("Sorry, that's not a valid choice.");
       console.log("");
     }
-
-    this.board.markSquareAt(choice, this.human.getMarker());
-  },
+    this.board.markSquareAt(choice,this.human.getMarker());
+  }
 
   computerMoves() {
     let validChoices = this.board.unusedSquares();
@@ -197,25 +216,26 @@ let TTTGame = {
 
     do {
       choice = Math.floor((9 * Math.random()) + 1).toString();
-    } while (!validChoices.includes(choice));
-
-    this.board.markSquareAt(choice, this.computer.getMarker());
-  },
-
-  gameOver() {
-    return this.board.isFull() || this.someoneWon();
-  },
+    } while (!validChoices.includes(choice))
+    this.board.markSquareAt(choice,this.computer.getMarker());
+  }
 
   someoneWon() {
-    return this.isWinner(this.human) || this.isWinner(this.computer);
-  },
-
+    return TTTGame.POSSIBLE_WINNING_ROWS.some(row => {
+      return this.isWinner(this.human) || this.isWinner(this.computer);
+    });
+  }
+  gameOver() {
+    return this.board.isFull() || this.someoneWon();
+  }
+  
   isWinner(player) {
     return TTTGame.POSSIBLE_WINNING_ROWS.some(row => {
-      return this.board.countMarkersFor(player, row) === 3;
-    });
-  },
+      return this.board.countMarkersFor(player,row) === 3;
+    })
+  }
 }
 
-let game = Object.create(TTTGame).init();
+let game = new TTTGame();
+
 game.play();
