@@ -1,4 +1,4 @@
-// implementing bonus feature #4
+// implementing bonus feature #5
 
 let readline = require("readline-sync");
 
@@ -216,7 +216,9 @@ class TTTGame {
         choice = this.findBestPlays('offensive')[0];
       } else if (this.findBestPlays('defensive') > 0) {
         choice = this.findBestPlays('defensive')[0];
-      } else {
+      } else if (this.board.squares['5'].isUnused()) {
+        choice = '5';
+      }else {
         choice = Math.floor((9 * Math.random()) + 1).toString();
       }
     } while (!validChoices.includes(choice))
