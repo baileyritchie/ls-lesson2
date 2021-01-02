@@ -1,4 +1,4 @@
-// implementing bonus feature #3
+// implementing bonus feature #4
 
 let readline = require("readline-sync");
 
@@ -47,7 +47,6 @@ class Board {
     return markers.length;
   }
   clear() {
-    /* clears board */
     this.squares = {};
     for (let index = 1; index <= 9; index++) {
       this.squares[String(index)] = new Square();
@@ -70,7 +69,7 @@ class Square {
     this.marker = marker;
   }
   isUnused() {
-    return this.marker  === Square.UNUSED_SQUARE;
+    return this.marker === Square.UNUSED_SQUARE;
   }
   getMarker() {
     return this.marker;
@@ -124,12 +123,11 @@ class TTTGame {
 
       this.computerMoves();
       if (this.gameOver()) break;
-      //this.board.displayWithClear();
+      this.board.displayWithClear();
     }
     this.board.displayWithClear();
     this.displayResults();
     this.displayPlayAgainMessage(); // changes the play again based on user choice
-
   }
   joinOr(arr, delim = ', ', word='or') {
     let result = '';
@@ -213,11 +211,14 @@ class TTTGame {
   computerMoves() {
     let validChoices = this.board.unusedSquares();
     let choice;
-
     do {
-      let immediateThreats = this.findThreats();
-      let bestPositions = this.findIdealComputerPosition(immediateThreats);
-      choice ? choice = bestPositions[0] : choice = Math.floor((9 * Math.random()) + 1).toString();
+      if (this.findBestPlays('offensive').length > 0) {
+        choice = this.findBestPlays('offensive')[0];
+      } else if (this.findBestPlays('defensive') > 0) {
+        choice = this.findBestPlays('defensive')[0];
+      } else {
+        choice = Math.floor((9 * Math.random()) + 1).toString();
+      }
     } while (!validChoices.includes(choice))
     this.board.markSquareAt(choice,this.computer.getMarker());
   }
@@ -236,30 +237,25 @@ class TTTGame {
       return this.board.countMarkersFor(player,row) === 3;
     })
   }
-  findThreats() {
-    let threats = [];
-    TTTGame.POSSIBLE_WINNING_ROWS.forEach((row) => {
-      if (this.board.countMarkersFor(this.human,row) === 2) {
-        threats.push(row);
-      }
-    });
-    return threats;
+  findPositions() {
+    let strategy = {};
+    strategy['defensive'] = this.findKeyRows(this.human);
+    strategy['offensive'] = this.findKeyRows(this.computer);
+    return strategy;
   }
-  findIdealComputerPosition(immediateThreats){
-    let threats = {};
-    if (immediateThreats.length === 0) return [];
-    immediateThreats.forEach((row) => {
-      row.forEach((pos) => {
-        if (this.board.squares[pos].isUnused() && !(threats.hasOwnProperty(pos))) {
-          threats[pos] = 1;
-        } else if (this.board.squares[pos].isUnused()) {
-          threats[pos] += 1;
-        } 
-      });
-    });
-    let maxThreat = Math.max(...Object.values(threats));
-    console.log(Object.keys(threats).filter((pos) => threats[pos] === maxThreat));
-    return Object.keys(threats).filter((pos) => threats[pos] === maxThreat);
+  findKeyRows(player){
+    return TTTGame.POSSIBLE_WINNING_ROWS
+      .filter((row) => (this.board.countMarkersFor(player,row) === 2));
+  }
+  findBestPlays(strat){
+    let threats = this.findPositions()[strat];
+    let options = threats.map((row) => {
+      return row.filter((pos) => this.board.squares[pos].isUnused()).toString();
+    }).filter((option) => option !== "");
+    if (threats.length === 0 || options.length === 0) {
+      return [];
+    };
+    return options;
   }
 }
 
