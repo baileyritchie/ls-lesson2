@@ -1,5 +1,4 @@
-// implementing bonus feature #5
-
+// implementing bonus feature #7
 let readline = require("readline-sync");
 
 class Board {
@@ -79,9 +78,16 @@ class Square {
 class Player {
   constructor(marker){
     this.marker  =  marker;
+    this.score = 0; // match score available for future use
   }
   getMarker() {
     return this.marker;
+  }
+  getMatchScore() {
+    return this.score;
+  }
+  setScore(newScore) {
+    this.score = newScore;
   }
 }
 
@@ -119,15 +125,31 @@ class TTTGame {
     this.board.display();
     while (true) {
       this.humanMoves();
-      if (this.gameOver()) break;
-
+      if (this.gameOver()) {
+        this.incrementWinnerScore(this.computer,this.human);
+        break;
+      };
       this.computerMoves();
-      if (this.gameOver()) break;
+      if (this.gameOver()) {
+        this.incrementWinnerScore(this.computer,this.human);
+        break;
+      };
       this.board.displayWithClear();
     }
     this.board.displayWithClear();
     this.displayResults();
-    this.displayPlayAgainMessage(); // changes the play again based on user choice
+    if (!this.isMatchOver()) {
+      this.displayPlayAgainMessage(); // changes the play again based on user choice
+    } else {
+      this.setPlayAgain('n');
+    }
+  }
+  incrementWinnerScore (player1,player2) {
+    if (this.isWinner(player1)) {
+      player1.setScore(player1.getMatchScore() + 1);
+    } else if (this.isWinner(player2)) {
+      player2.setScore(player2.getMatchScore() + 1);
+    }
   }
   joinOr(arr, delim = ', ', word='or') {
     let result = '';
@@ -145,26 +167,17 @@ class TTTGame {
     });
     return result;
   }
-  play() {
-    this.displayWelcomeMessage();
-    do {
-      this.board.clear();
-      this.playMore();
-    } while (this.playAgain === 'y');
-
-    this.displayGoodbyeMessage();
-  }
   displayPlayAgainMessage() {
     const prompt = `Do you want to play again: y or n?`;
-    let choice = readline.question(prompt);
+    let choice = readline.question(prompt).toLowerCase();
     while (true) {
-      if (choice.toLowerCase() === 'y' || choice.toLowerCase() === 'n' ) {
+      if (choice === 'y' || choice === 'n') {
         break;
       }
       console.log('Not a valid response. Try again.');
       choice = readline.question(prompt)
     }
-    this.setPlayAgain(choice.toLowerCase());
+    this.setPlayAgain(choice);
   }
 
   setPlayAgain(option) {
@@ -218,7 +231,7 @@ class TTTGame {
         choice = this.findBestPlays('defensive')[0];
       } else if (this.board.squares['5'].isUnused()) {
         choice = '5';
-      }else {
+      } else {
         choice = Math.floor((9 * Math.random()) + 1).toString();
       }
     } while (!validChoices.includes(choice))
@@ -259,8 +272,36 @@ class TTTGame {
     };
     return options;
   }
+
+  playMatch() {
+    this.displayStartMatch();
+    do {
+      this.board.clear();
+      this.playMore();
+    } while (this.playAgain === 'y')
+    
+    this.displayMatchWinner();
+    this.displayGoodbyeMessage();
+  }
+  isMatchOver() {
+    if (this.human.getMatchScore() === 3 || this.computer.getMatchScore() === 3) {
+      return true;
+    } else return false;
+  }
+  displayStartMatch() {
+    console.log('You are now playing a Tic-Tac-Toe Match!');
+    console.log('The player that wins any three games wins the match. Good Luck!')
+  }
+  
+  displayMatchWinner() {
+    if (this.human.getMatchScore() === 3) {
+      console.log('Congratulations human, you have won the match!');
+    } else if (this.computer.getMatchScore() === 3) {
+      console.log('Congratulations computer, you have won the match!');
+    }
+  }
 }
 
 let game = new TTTGame();
 
-game.play();
+game.playMatch();
