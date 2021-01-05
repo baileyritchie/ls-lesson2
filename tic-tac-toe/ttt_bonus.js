@@ -1,4 +1,4 @@
-// implementing bonus feature #7
+// implementing bonus feature #8
 let readline = require("readline-sync");
 
 class Board {
@@ -120,24 +120,25 @@ class TTTGame {
     this.human = new Human();
     this.computer = new Computer();
     this.playAgain = 'n';
+    this.firstPlayer = this.human;
   }
   playMore() {
     this.board.display();
+    let currentPlayer = this.firstPlayer;
     while (true) {
-      this.humanMoves();
-      if (this.gameOver()) {
-        this.incrementWinnerScore(this.computer,this.human);
-        break;
-      };
-      this.computerMoves();
+      this.playerMoves(currentPlayer);
       if (this.gameOver()) {
         this.incrementWinnerScore(this.computer,this.human);
         break;
       };
       this.board.displayWithClear();
+      currentPlayer = this.togglePlayer(currentPlayer);
+      console.log('The current player at the end is: ', currentPlayer);
     }
     this.board.displayWithClear();
     this.displayResults();
+    this.displayMatchScore();
+    /* if the match isn't over keep playing othwerwise stop playing */
     if (!this.isMatchOver()) {
       this.displayPlayAgainMessage(); // changes the play again based on user choice
     } else {
@@ -203,10 +204,11 @@ class TTTGame {
       console.log('A tie game. How boring.');
     }
   }
-
+  displayMatchScore(){
+    console.log(`The Match Score is Computer ${this.computer.getMatchScore()} & Human ${this.human.getMatchScore()}.`)
+  }
   humanMoves() {
     let choice;
-
     while (true) {
       let validChoices = this.board.unusedSquares();
       const prompt = `Choose a square (${this.joinOr(this.board.unusedSquares())}): `;
@@ -278,6 +280,7 @@ class TTTGame {
     do {
       this.board.clear();
       this.playMore();
+      this.firstPlayer = this.togglePlayer(this.firstPlayer);
     } while (this.playAgain === 'y')
     
     this.displayMatchWinner();
@@ -298,6 +301,16 @@ class TTTGame {
       console.log('Congratulations human, you have won the match!');
     } else if (this.computer.getMatchScore() === 3) {
       console.log('Congratulations computer, you have won the match!');
+    }
+  }
+  togglePlayer(player) {
+    return player === this.human? this.computer : this.human;
+  }
+  playerMoves(player) {
+    if (player === this.human) {
+      this.humanMoves();
+    } else {
+      this.computerMoves();
     }
   }
 }
